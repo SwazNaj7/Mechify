@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# context/documentation files (private)
+database-schema.md
+strat-context.md
+project-requirements.md
+security-checklist.md
+clean-code.md
