@@ -92,7 +92,7 @@ export default async function TradeDetailPage({ params }: TradeDetailPageProps) 
               <span className="text-muted-foreground">Open Time</span>
               <span className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                {format(new Date(trade.open_time), 'MMM d, yyyy HH:mm')} EST
+                {format(new Date(trade.open_time), 'MMM d, yyyy h:mm a')}
               </span>
             </div>
             <Separator />
@@ -100,7 +100,7 @@ export default async function TradeDetailPage({ params }: TradeDetailPageProps) 
               <span className="text-muted-foreground">Close Time</span>
               <span className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                {format(new Date(trade.close_time), 'MMM d, yyyy HH:mm')} EST
+                {format(new Date(trade.close_time), 'MMM d, yyyy h:mm a')}
               </span>
             </div>
             {trade.entry_price && (
