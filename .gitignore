@@ -43,8 +43,8 @@ next-env.d.ts
 # context/documentation files (private)
 database-schema.md
 strat-context.md
-project-requirements.md
 security-checklist.md
 clean-code.md
 project-documentation.md
-#context-files --- IGNORE ---
+project-requirements.md
+context-files/
