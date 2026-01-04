@@ -20,6 +20,7 @@ export interface Trade {
   session: TradeSession | null;
   entry_price: number | null;
   exit_price: number | null;
+  profit_amount: number | null;
   open_time: string;
   close_time: string;
   image_url: string;

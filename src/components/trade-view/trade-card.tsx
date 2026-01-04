@@ -85,6 +85,18 @@ export function TradeCard({ trade, onClick }: TradeCardProps) {
           </div>
         </div>
 
+        {/* Profit/Loss display */}
+        {trade.profit_amount !== null && trade.profit_amount !== undefined && (
+          <div className={cn(
+            "text-lg font-semibold",
+            trade.profit_amount > 0 && "text-emerald-500",
+            trade.profit_amount < 0 && "text-red-500",
+            trade.profit_amount === 0 && "text-muted-foreground"
+          )}>
+            {trade.profit_amount > 0 ? '+' : ''}{trade.profit_amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+          </div>
+        )}
+
         {/* Time info */}
         <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <Clock className="h-3.5 w-3.5" />

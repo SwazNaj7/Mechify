@@ -2,6 +2,8 @@ import {
   GradeDistribution,
   ResultDistribution,
   SessionPerformance,
+  TradesOverTimeChart,
+  ProfitOverTimeChart,
 } from '@/components/dashboard/charts';
 import { DashboardStats } from '@/components/dashboard/stats-cards';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -149,6 +151,12 @@ export default async function AnalysisPage() {
         averageGrade={averageGrade}
         thisWeekTrades={thisWeekTrades}
       />
+
+      {/* Time-based Area Charts */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <TradesOverTimeChart trades={trades} />
+        <ProfitOverTimeChart trades={trades} />
+      </div>
 
       {/* Main Charts Grid */}
       <div className="grid gap-6 md:grid-cols-2">

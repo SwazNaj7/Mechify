@@ -59,6 +59,7 @@ export function TradeForm() {
   const [session, setSession] = useState<TradeSession>('new_york_am');
   const [entryPrice, setEntryPrice] = useState('');
   const [exitPrice, setExitPrice] = useState('');
+  const [profitAmount, setProfitAmount] = useState('');
   const [openTime, setOpenTime] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const [closeTime, setCloseTime] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const [notes, setNotes] = useState('');
@@ -106,6 +107,19 @@ export function TradeForm() {
       return;
     }
 
+    // Calculate profit amount based on result
+    let finalProfitAmount = 0;
+    if (profitAmount) {
+      const amount = Math.abs(parseFloat(profitAmount));
+      if (result === 'take_profit') {
+        finalProfitAmount = amount;
+      } else if (result === 'stopped_out') {
+        finalProfitAmount = -amount;
+      } else {
+        finalProfitAmount = 0; // break_even
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const formData = {
@@ -116,6 +130,7 @@ export function TradeForm() {
         timeframe: timeframe,
         notes: notes || undefined,
         tradeDate: openTime,
+        profit_amount: finalProfitAmount,
       };
 
       const uploadResult = await uploadTrade(formData, imagePreview, aiAnalysis);
@@ -295,6 +310,41 @@ export function TradeForm() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* Profit/Loss Amount */}
+              <div className="space-y-2">
+                <Label htmlFor="profitAmount" className="flex items-center gap-2">
+                  Profit/Loss Amount
+                  <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
+                    result === 'take_profit' 
+                      ? 'bg-emerald-500/10 text-emerald-500' 
+                      : result === 'stopped_out'
+                      ? 'bg-red-500/10 text-red-500'
+                      : 'bg-muted text-muted-foreground'
+                  }`}>
+                    {result === 'take_profit' ? '+' : result === 'stopped_out' ? '-' : '±0'}
+                  </span>
+                </Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    id="profitAmount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder={result === 'break_even' ? '0.00' : '100.00'}
+                    value={result === 'break_even' ? '' : profitAmount}
+                    onChange={(e) => setProfitAmount(e.target.value)}
+                    disabled={result === 'break_even'}
+                    className="bg-background/50 pl-7"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {result === 'take_profit' && 'Enter the profit amount (will be saved as positive)'}
+                  {result === 'stopped_out' && 'Enter the loss amount (will be saved as negative)'}
+                  {result === 'break_even' && 'Break even trades are automatically set to $0'}
+                </p>
               </div>
 
               <div className="space-y-2">

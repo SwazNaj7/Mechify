@@ -22,6 +22,7 @@ export interface TradeUploadData {
   timeframe: string;
   notes?: string;
   tradeDate: string;
+  profit_amount?: number;
 }
 
 // ============================================================================
@@ -197,6 +198,7 @@ export async function uploadTrade(
       overlay_entry_x: aiAnalysis?.entry_coordinate?.x || null,
       overlay_entry_y: aiAnalysis?.entry_coordinate?.y || null,
       notes: formData.notes || null,
+      profit_amount: formData.profit_amount ?? null,
       created_at: new Date().toISOString(),
     };
 

@@ -1,8 +1,19 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { SetupGrade, TradeResult } from '@/types/trade';
+import type { SetupGrade, TradeResult, Trade } from '@/types/trade';
 import { cn } from '@/lib/utils';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+import { format, subDays, subMonths, subYears, startOfDay, isAfter } from 'date-fns';
 
 interface GradeDistributionProps {
   distribution: Record<SetupGrade, number>;
@@ -148,6 +159,304 @@ export function SessionPerformance({ sessions }: SessionPerformanceProps) {
             );
           })}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Time period filter options
+type TimePeriod = 'week' | 'month' | 'year' | 'all';
+
+interface TradesOverTimeProps {
+  trades: Trade[];
+}
+
+export function TradesOverTimeChart({ trades }: TradesOverTimeProps) {
+  const [period, setPeriod] = useState<TimePeriod>('all');
+
+  // Filter trades based on selected period
+  const getFilteredTrades = () => {
+    const now = new Date();
+    let startDate: Date;
+
+    switch (period) {
+      case 'week':
+        startDate = subDays(now, 7);
+        break;
+      case 'month':
+        startDate = subMonths(now, 1);
+        break;
+      case 'year':
+        startDate = subYears(now, 1);
+        break;
+      case 'all':
+      default:
+        return trades;
+    }
+
+    return trades.filter((t) => isAfter(new Date(t.open_time), startDate));
+  };
+
+  // Group trades by date and count
+  const getChartData = () => {
+    const filtered = getFilteredTrades();
+    const grouped: Record<string, { count: number; timestamp: number }> = {};
+
+    filtered.forEach((trade) => {
+      const tradeDate = startOfDay(new Date(trade.open_time));
+      const dateKey = format(tradeDate, 'MMM d');
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = { count: 0, timestamp: tradeDate.getTime() };
+      }
+      grouped[dateKey].count += 1;
+    });
+
+    // Convert to array and sort by timestamp
+    return Object.entries(grouped)
+      .map(([date, { count, timestamp }]) => ({ date, trades: count, timestamp }))
+      .sort((a, b) => a.timestamp - b.timestamp);
+  };
+
+  const data = getChartData();
+
+  return (
+    <Card className="bg-card/50 backdrop-blur border-border/50">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium">Trades Over Time</CardTitle>
+          <div className="flex gap-1">
+            {(['week', 'month', 'year', 'all'] as TimePeriod[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={cn(
+                  'px-2 py-1 text-xs rounded-md transition-colors',
+                  period === p
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+                )}
+              >
+                {p === 'week' ? '7D' : p === 'month' ? '1M' : p === 'year' ? '1Y' : 'All'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {data.length === 0 ? (
+          <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+            No trades in this period
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="tradesGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="rgb(99, 102, 241)" stopOpacity={0.5} />
+                  <stop offset="95%" stopColor="rgb(99, 102, 241)" stopOpacity={0.05} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+              <XAxis
+                dataKey="date"
+                className="text-xs"
+                tick={{ fill: 'rgba(255, 255, 255, 0.7)', fontSize: 11 }}
+                axisLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
+                tickLine={false}
+              />
+              <YAxis
+                className="text-xs"
+                tick={{ fill: 'rgba(255, 255, 255, 0.7)', fontSize: 11 }}
+                axisLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
+                tickLine={false}
+                allowDecimals={false}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+                }}
+                labelStyle={{ color: 'rgba(255, 255, 255, 0.9)' }}
+                itemStyle={{ color: 'rgb(129, 140, 248)' }}
+              />
+              <Area
+                type="monotone"
+                dataKey="trades"
+                stroke="rgb(129, 140, 248)"
+                fillOpacity={1}
+                fill="url(#tradesGradient)"
+                strokeWidth={2.5}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+interface ProfitOverTimeProps {
+  trades: Trade[];
+}
+
+export function ProfitOverTimeChart({ trades }: ProfitOverTimeProps) {
+  const [period, setPeriod] = useState<TimePeriod>('all');
+
+  // Filter trades based on selected period
+  const getFilteredTrades = () => {
+    const now = new Date();
+    let startDate: Date;
+
+    switch (period) {
+      case 'week':
+        startDate = subDays(now, 7);
+        break;
+      case 'month':
+        startDate = subMonths(now, 1);
+        break;
+      case 'year':
+        startDate = subYears(now, 1);
+        break;
+      case 'all':
+      default:
+        return trades;
+    }
+
+    return trades.filter((t) => isAfter(new Date(t.open_time), startDate));
+  };
+
+  // Calculate cumulative P&L over time
+  const getChartData = () => {
+    const filtered = getFilteredTrades()
+      .filter((t) => t.profit_amount !== null && t.profit_amount !== undefined)
+      .sort((a, b) => new Date(a.open_time).getTime() - new Date(b.open_time).getTime());
+
+    let cumulative = 0;
+    const data: { date: string; profit: number; cumulative: number; timestamp: number }[] = [];
+
+    filtered.forEach((trade) => {
+      const tradeDate = startOfDay(new Date(trade.open_time));
+      const dateKey = format(tradeDate, 'MMM d');
+      const timestamp = tradeDate.getTime();
+      cumulative += trade.profit_amount || 0;
+      
+      // Find existing entry or create new
+      const existing = data.find((d) => d.date === dateKey);
+      if (existing) {
+        existing.profit += trade.profit_amount || 0;
+        existing.cumulative = cumulative;
+      } else {
+        data.push({
+          date: dateKey,
+          profit: trade.profit_amount || 0,
+          cumulative,
+          timestamp,
+        });
+      }
+    });
+
+    // Sort by timestamp to ensure correct order
+    return data.sort((a, b) => a.timestamp - b.timestamp);
+  };
+
+  const data = getChartData();
+  const totalProfit = data.length > 0 ? data[data.length - 1]?.cumulative || 0 : 0;
+
+  return (
+    <Card className="bg-card/50 backdrop-blur border-border/50">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm font-medium">Cumulative P&L</CardTitle>
+            <p className={cn(
+              "text-2xl font-bold mt-1",
+              totalProfit > 0 && "text-emerald-500",
+              totalProfit < 0 && "text-red-500",
+              totalProfit === 0 && "text-muted-foreground"
+            )}>
+              {totalProfit > 0 ? '+' : ''}{totalProfit.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+            </p>
+          </div>
+          <div className="flex gap-1">
+            {(['week', 'month', 'year', 'all'] as TimePeriod[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={cn(
+                  'px-2 py-1 text-xs rounded-md transition-colors',
+                  period === p
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+                )}
+              >
+                {p === 'week' ? '7D' : p === 'month' ? '1M' : p === 'year' ? '1Y' : 'All'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {data.length === 0 ? (
+          <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+            No P&L data in this period
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="rgb(52, 211, 153)" stopOpacity={0.5} />
+                  <stop offset="95%" stopColor="rgb(52, 211, 153)" stopOpacity={0.05} />
+                </linearGradient>
+                <linearGradient id="lossGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="rgb(248, 113, 113)" stopOpacity={0.5} />
+                  <stop offset="95%" stopColor="rgb(248, 113, 113)" stopOpacity={0.05} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+              <XAxis
+                dataKey="date"
+                className="text-xs"
+                tick={{ fill: 'rgba(255, 255, 255, 0.7)', fontSize: 11 }}
+                axisLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
+                tickLine={false}
+              />
+              <YAxis
+                className="text-xs"
+                tick={{ fill: 'rgba(255, 255, 255, 0.7)', fontSize: 11 }}
+                axisLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
+                tickLine={false}
+                tickFormatter={(value) => `$${value}`}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+                }}
+                labelStyle={{ color: 'rgba(255, 255, 255, 0.9)' }}
+                formatter={(value) => {
+                  const numValue = Number(value) || 0;
+                  return [
+                    `${numValue >= 0 ? '+' : ''}${numValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`,
+                    'Cumulative P&L'
+                  ];
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="cumulative"
+                stroke={totalProfit >= 0 ? 'rgb(52, 211, 153)' : 'rgb(248, 113, 113)'}
+                fillOpacity={1}
+                fill={totalProfit >= 0 ? 'url(#profitGradient)' : 'url(#lossGradient)'}
+                strokeWidth={2.5}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   );
