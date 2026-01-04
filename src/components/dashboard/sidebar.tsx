@@ -97,23 +97,23 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border/50 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-0',
+          'fixed inset-y-0 left-0 z-50 w-64 h-screen bg-card border-r border-border/50 transform transition-transform duration-300 ease-in-out lg:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full max-h-screen overflow-hidden">
           {/* Logo */}
-          <div className="flex items-center gap-2 px-6 py-5">
+          <div className="flex items-center gap-2 px-6 py-5 shrink-0">
             <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
               <TrendingUp className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="text-xl font-bold">Mechify</span>
           </div>
 
-          <Separator className="opacity-50" />
+          <Separator className="opacity-50 shrink-0" />
 
-          {/* Navigation */}
-          <nav className="flex-1 px-3 py-4 space-y-1">
+          {/* Navigation - Scrollable */}
+          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
             {navigation.map((item) => {
               const isActive = pathname === item.href;
               return (
@@ -135,16 +135,16 @@ export function Sidebar() {
             })}
           </nav>
 
-          <Separator className="opacity-50" />
+          <Separator className="opacity-50 shrink-0" />
 
-          {/* Footer */}
-          <div className="p-4 space-y-3">
+          {/* Footer - Fixed at bottom */}
+          <div className="p-4 space-y-3 shrink-0 bg-card">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-muted text-xs">{getUserInitials()}</AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium truncate max-w-[100px]">{getDisplayName()}</span>
+                <span className="text-sm font-medium truncate max-w-25">{getDisplayName()}</span>
               </div>
               <ThemeToggle />
             </div>

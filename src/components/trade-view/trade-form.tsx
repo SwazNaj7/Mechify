@@ -20,7 +20,7 @@ import { ImageUpload } from './image-upload';
 import { GradeBadge } from './grade-badge';
 import { toast } from 'sonner';
 import { uploadTrade, analyzeChartImage } from '@/app/actions';
-import type { AIFormData, SetupGrade, TradeDirection, TradeResult } from '@/types/trade';
+import type { AIFormData, SetupGrade, TradeDirection, TradeResult, TradeSession } from '@/types/trade';
 
 const instruments = [
   'EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD',
@@ -30,6 +30,13 @@ const instruments = [
 ];
 
 const timeframes = ['1m', '5m', '15m', '1h', '4h', 'D', 'W', 'M'];
+
+const sessions: { value: TradeSession; label: string }[] = [
+  { value: 'new_york_am', label: 'New York AM' },
+  { value: 'new_york_pm', label: 'New York PM' },
+  { value: 'asia', label: 'Asia' },
+  { value: 'london', label: 'London' },
+];
 
 const results: { value: TradeResult; label: string }[] = [
   { value: 'take_profit', label: 'Take Profit' },
@@ -49,6 +56,7 @@ export function TradeForm() {
   const [timeframe, setTimeframe] = useState('');
   const [direction, setDirection] = useState<TradeDirection>('long');
   const [result, setResult] = useState<TradeResult>('take_profit');
+  const [session, setSession] = useState<TradeSession>('new_york_am');
   const [entryPrice, setEntryPrice] = useState('');
   const [exitPrice, setExitPrice] = useState('');
   const [openTime, setOpenTime] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
@@ -103,7 +111,7 @@ export function TradeForm() {
       const formData = {
         setupGrade: (aiAnalysis?.setup_grade || 'C') as SetupGrade,
         tradeResult: result,
-        session: 'new_york', // Could be derived from time
+        session: session,
         pair: instrument,
         timeframe: timeframe,
         notes: notes || undefined,
@@ -170,7 +178,7 @@ export function TradeForm() {
 
           {/* AI Analysis Results */}
           {aiAnalysis && (
-            <Card className="bg-card/50 backdrop-blur border-border/50 border-primary/30">
+            <Card className="bg-card/50 backdrop-blur border-primary/30">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">AI Analysis</CardTitle>
@@ -289,6 +297,22 @@ export function TradeForm() {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="session">Session *</Label>
+                <Select value={session} onValueChange={(v) => setSession(v as TradeSession)}>
+                  <SelectTrigger className="bg-background/50">
+                    <SelectValue placeholder="Select session" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sessions.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="entryPrice">Entry Price</Label>
@@ -354,7 +378,7 @@ export function TradeForm() {
                   placeholder="Session narrative, liquidity observations, psychology notes..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="bg-background/50 min-h-[100px]"
+                  className="bg-background/50 min-h-25"
                 />
               </div>
             </CardContent>

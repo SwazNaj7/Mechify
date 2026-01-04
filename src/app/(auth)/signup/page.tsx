@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { AuroraBackground } from '@/components/ui/aurora-background';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
@@ -56,28 +57,29 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-8">
-        {/* Logo */}
-        <div className="flex flex-col items-center space-y-2">
-          <div className="flex items-center space-x-2">
-            <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-              <TrendingUp className="h-6 w-6 text-primary-foreground" />
+    <AuroraBackground>
+      <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
+        <div className="w-full max-w-lg space-y-8">
+          {/* Logo */}
+          <div className="flex flex-col items-center space-y-2">
+            <div className="flex items-center space-x-2">
+              <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center">
+                <TrendingUp className="h-7 w-7 text-primary-foreground" />
+              </div>
+              <span className="text-3xl font-bold">Mechify</span>
             </div>
-            <span className="text-2xl font-bold">Mechify</span>
+            <p className="text-muted-foreground">Mechanical Trading Journal</p>
           </div>
-          <p className="text-muted-foreground text-sm">Mechanical Trading Journal</p>
-        </div>
 
         <Card className="border-border/50 bg-card/50 backdrop-blur">
-          <CardHeader className="space-y-1">
+          <CardHeader className="space-y-1 p-6 pb-4">
             <CardTitle className="text-2xl text-center">Create an account</CardTitle>
             <CardDescription className="text-center">
               Start journaling your trades with AI-powered analysis
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSignup}>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5 px-6">
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full Name</Label>
                 <Input
@@ -156,5 +158,6 @@ export default function SignupPage() {
         </Card>
       </div>
     </div>
+    </AuroraBackground>
   );
 }

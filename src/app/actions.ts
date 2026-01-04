@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { VISION_SYSTEM_PROMPT } from '@/lib/ai-prompting';
-import type { AIFormData, Trade, SetupGrade, TradeResult } from '@/types/trade';
+import type { AIFormData, Trade, SetupGrade, TradeResult, TradeSession } from '@/types/trade';
 
 // ============================================================================
 // Types
@@ -17,7 +17,7 @@ type ActionResult<T = void> =
 export interface TradeUploadData {
   setupGrade: SetupGrade;
   tradeResult: TradeResult;
-  session: string;
+  session: TradeSession;
   pair: string;
   timeframe: string;
   notes?: string;

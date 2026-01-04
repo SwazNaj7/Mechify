@@ -7,6 +7,7 @@ export type SetupGrade = 'A+' | 'A' | 'A-' | 'B' | 'C';
 export type Confidence = 'high' | 'medium' | 'low';
 export type MarketBias = 'bullish' | 'bearish' | 'neutral';
 export type DisplacementQuality = 'strong' | 'weak' | 'none';
+export type TradeSession = 'new_york_am' | 'new_york_pm' | 'asia' | 'london';
 
 // Database Trade Record
 export interface Trade {
@@ -16,6 +17,7 @@ export interface Trade {
   timeframe: string;
   direction: TradeDirection | null;
   result: TradeResult;
+  session: TradeSession | null;
   entry_price: number | null;
   exit_price: number | null;
   open_time: string;
