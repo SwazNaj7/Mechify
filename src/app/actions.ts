@@ -408,7 +408,14 @@ export async function sendChatMessage(
 /**
  * Get the current user's profile
  */
-export async function getProfile(): Promise<ActionResult<{ id: string; email: string | null; full_name: string | null; timezone: string | null }>> {
+export async function getProfile(): Promise<ActionResult<{ 
+  id: string; 
+  email: string | null; 
+  full_name: string | null; 
+  username: string | null;
+  avatar_url: string | null;
+  timezone: string | null;
+}>> {
   try {
     const supabase = await createClient();
     
@@ -419,7 +426,7 @@ export async function getProfile(): Promise<ActionResult<{ id: string; email: st
 
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('id, email, full_name, timezone')
+      .select('id, email, full_name, username, avatar_url, timezone')
       .eq('id', user.id)
       .single();
 
@@ -432,9 +439,11 @@ export async function getProfile(): Promise<ActionResult<{ id: string; email: st
             id: user.id,
             email: user.email,
             full_name: user.user_metadata?.full_name || null,
+            username: null,
+            avatar_url: null,
             timezone: null,
           })
-          .select('id, email, full_name, timezone')
+          .select('id, email, full_name, username, avatar_url, timezone')
           .single();
 
         if (createError) {
@@ -458,7 +467,7 @@ export async function getProfile(): Promise<ActionResult<{ id: string; email: st
 /**
  * Update the current user's profile
  */
-export async function updateProfile(data: { full_name?: string; timezone?: string }): Promise<ActionResult> {
+export async function updateProfile(data: { full_name?: string; username?: string; avatar_url?: string; timezone?: string }): Promise<ActionResult> {
   try {
     const supabase = await createClient();
     
@@ -483,6 +492,85 @@ export async function updateProfile(data: { full_name?: string; timezone?: strin
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update profile',
+    };
+  }
+}
+
+/**
+ * Upload avatar image to storage and update profile
+ */
+export async function uploadAvatar(formData: FormData): Promise<ActionResult<{ url: string }>> {
+  try {
+    const supabase = await createClient();
+    
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    const file = formData.get('avatar') as File;
+    if (!file) {
+      return { success: false, error: 'No file provided' };
+    }
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      return { success: false, error: 'Invalid file type. Please upload a JPEG, PNG, GIF, or WebP image.' };
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      return { success: false, error: 'File too large. Maximum size is 5MB.' };
+    }
+
+    // Generate unique filename
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+    // Upload to storage
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error('Avatar upload error:', uploadError);
+      // Provide more specific error messages
+      if (uploadError.message?.includes('bucket') || uploadError.message?.includes('not found')) {
+        return { success: false, error: 'Storage bucket not configured. Please create the "avatars" bucket in Supabase Storage.' };
+      }
+      if (uploadError.message?.includes('policy') || uploadError.message?.includes('permission')) {
+        return { success: false, error: 'Permission denied. Storage policies may not be configured correctly.' };
+      }
+      return { success: false, error: `Upload failed: ${uploadError.message}` };
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(fileName);
+
+    // Update profile with new avatar URL
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ avatar_url: publicUrl })
+      .eq('id', user.id);
+
+    if (updateError) {
+      console.error('Profile avatar update error:', updateError);
+      return { success: false, error: 'Failed to update profile with avatar' };
+    }
+
+    revalidatePath('/dashboard/settings');
+    return { success: true, data: { url: publicUrl } };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to upload avatar',
     };
   }
 }

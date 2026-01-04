@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Select,
   SelectContent,
@@ -14,17 +15,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { User, Bell, Shield, Trash2, Globe, Loader2 } from 'lucide-react';
+import { User, Bell, Shield, Trash2, Globe, Loader2, Camera } from 'lucide-react';
 import { TIMEZONES, getDefaultTimezone } from '@/lib/timezones';
-import { getProfile, updateProfile } from '@/app/actions';
+import { getProfile, updateProfile, uploadAvatar } from '@/app/actions';
 import { toast } from 'sonner';
 
 export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [timezone, setTimezone] = useState(getDefaultTimezone());
   const [email, setEmail] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function loadProfile() {
@@ -32,12 +37,55 @@ export default function SettingsPage() {
       if (result.success) {
         setEmail(result.data.email || '');
         setDisplayName(result.data.full_name || '');
+        setUsername(result.data.username || '');
+        setAvatarUrl(result.data.avatar_url || '');
         setTimezone(result.data.timezone || getDefaultTimezone());
       }
       setIsLoading(false);
     }
     loadProfile();
   }, []);
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      
+      const result = await uploadAvatar(formData);
+      
+      if (result.success) {
+        setAvatarUrl(result.data.url);
+        toast.success('Profile picture updated');
+      } else {
+        toast.error(result.error || 'Failed to upload image');
+      }
+    } catch {
+      toast.error('Failed to upload image');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   const handleSaveProfile = async () => {
     setIsSaving(true);
@@ -57,6 +105,15 @@ export default function SettingsPage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   if (isLoading) {
@@ -87,7 +144,57 @@ export default function SettingsPage() {
             Update your personal information
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          {/* Avatar Upload */}
+          <div className="flex items-center gap-4">
+            <div className="relative group">
+              <Avatar className="h-20 w-20 cursor-pointer" onClick={handleAvatarClick}>
+                <AvatarImage src={avatarUrl} alt={displayName} />
+                <AvatarFallback className="text-lg">
+                  {getInitials(displayName || username || 'U')}
+                </AvatarFallback>
+              </Avatar>
+              <div 
+                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                onClick={handleAvatarClick}
+              >
+                {isUploadingAvatar ? (
+                  <Loader2 className="h-6 w-6 text-white animate-spin" />
+                ) : (
+                  <Camera className="h-6 w-6 text-white" />
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+                disabled={isUploadingAvatar}
+              />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Profile Picture</p>
+              <p className="text-xs text-muted-foreground">
+                Click to upload a new photo. Max 5MB.
+              </p>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="grid gap-2">
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              value={username ? `@${username}` : ''}
+              disabled
+              className="bg-muted"
+            />
+            <p className="text-xs text-muted-foreground">
+              Username cannot be changed
+            </p>
+          </div>
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -102,7 +209,7 @@ export default function SettingsPage() {
             </p>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="displayName">Display Name</Label>
+            <Label htmlFor="displayName">Full Name</Label>
             <Input
               id="displayName"
               placeholder="Your name"
@@ -110,6 +217,16 @@ export default function SettingsPage() {
               onChange={(e) => setDisplayName(e.target.value)}
             />
           </div>
+          <Button onClick={handleSaveProfile} disabled={isSaving} className="w-full sm:w-auto">
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save Profile'
+            )}
+          </Button>
         </CardContent>
       </Card>
 

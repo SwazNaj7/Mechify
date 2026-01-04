@@ -14,15 +14,21 @@ import {
   X,
   BookOpen,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
+
+interface Profile {
+  full_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+}
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -37,6 +43,20 @@ export function Sidebar() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  const fetchProfile = useCallback(async (userId: string) => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from('profiles')
+      .select('full_name, username, avatar_url')
+      .eq('id', userId)
+      .single();
+    
+    if (data) {
+      setProfile(data);
+    }
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -44,25 +64,52 @@ export function Sidebar() {
     // Get initial user
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
+      if (user) {
+        fetchProfile(user.id);
+      }
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setProfile(null);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchProfile]);
+
+  // Refetch profile when pathname changes (e.g., coming from settings)
+  useEffect(() => {
+    if (user) {
+      // Small delay to allow settings save to complete
+      const timer = setTimeout(() => {
+        fetchProfile(user.id);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [pathname, user, fetchProfile]);
 
   // Get user initials for avatar
   const getUserInitials = () => {
+    if (profile?.full_name) {
+      return profile.full_name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    }
     if (!user?.email) return 'TR';
-    const email = user.email;
-    return email.substring(0, 2).toUpperCase();
+    return user.email.substring(0, 2).toUpperCase();
   };
 
   // Get display name
   const getDisplayName = () => {
+    if (profile?.full_name) return profile.full_name;
     if (!user) return 'Trader';
     return user.user_metadata?.full_name || user.email?.split('@')[0] || 'Trader';
   };
@@ -142,6 +189,7 @@ export function Sidebar() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Avatar className="h-8 w-8">
+                  <AvatarImage src={profile?.avatar_url || undefined} alt={getDisplayName()} />
                   <AvatarFallback className="bg-muted text-xs">{getUserInitials()}</AvatarFallback>
                 </Avatar>
                 <span className="text-sm font-medium truncate max-w-25">{getDisplayName()}</span>
