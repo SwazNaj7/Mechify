@@ -186,3 +186,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Chart axis text styling for Recharts */
+.fill-foreground text {
+  fill: var(--foreground);
+}
+
+.stroke-border\/30 {
+  stroke: var(--border);
+  stroke-opacity: 0.3;
+}

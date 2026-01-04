@@ -249,36 +249,38 @@ export function TradesOverTimeChart({ trades }: TradesOverTimeProps) {
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
               <defs>
                 <linearGradient id="tradesGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="rgb(99, 102, 241)" stopOpacity={0.5} />
                   <stop offset="95%" stopColor="rgb(99, 102, 241)" stopOpacity={0.05} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" vertical={false} />
               <XAxis
                 dataKey="date"
-                className="text-xs"
-                tick={{ fill: 'rgba(255, 255, 255, 0.7)', fontSize: 11 }}
-                axisLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
+                className="text-xs fill-foreground"
+                tick={{ fontSize: 11 }}
+                axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                className="text-xs"
-                tick={{ fill: 'rgba(255, 255, 255, 0.7)', fontSize: 11 }}
-                axisLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
+                className="text-xs fill-foreground"
+                tick={{ fontSize: 11 }}
+                axisLine={false}
                 tickLine={false}
                 allowDecimals={false}
+                width={30}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  backgroundColor: 'var(--popover)',
+                  border: '1px solid var(--border)',
                   borderRadius: '8px',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                  color: 'var(--popover-foreground)',
                 }}
-                labelStyle={{ color: 'rgba(255, 255, 255, 0.9)' }}
+                labelStyle={{ color: 'var(--popover-foreground)' }}
                 itemStyle={{ color: 'rgb(129, 140, 248)' }}
               />
               <Area
@@ -404,7 +406,7 @@ export function ProfitOverTimeChart({ trades }: ProfitOverTimeProps) {
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
               <defs>
                 <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="rgb(52, 211, 153)" stopOpacity={0.5} />
@@ -415,29 +417,31 @@ export function ProfitOverTimeChart({ trades }: ProfitOverTimeProps) {
                   <stop offset="95%" stopColor="rgb(248, 113, 113)" stopOpacity={0.05} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" vertical={false} />
               <XAxis
                 dataKey="date"
-                className="text-xs"
-                tick={{ fill: 'rgba(255, 255, 255, 0.7)', fontSize: 11 }}
-                axisLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
+                className="text-xs fill-foreground"
+                tick={{ fontSize: 11 }}
+                axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                className="text-xs"
-                tick={{ fill: 'rgba(255, 255, 255, 0.7)', fontSize: 11 }}
-                axisLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
+                className="text-xs fill-foreground"
+                tick={{ fontSize: 11 }}
+                axisLine={false}
                 tickLine={false}
                 tickFormatter={(value) => `$${value}`}
+                width={60}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  backgroundColor: 'var(--popover)',
+                  border: '1px solid var(--border)',
                   borderRadius: '8px',
                   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+                  color: 'var(--popover-foreground)',
                 }}
-                labelStyle={{ color: 'rgba(255, 255, 255, 0.9)' }}
+                labelStyle={{ color: 'var(--popover-foreground)' }}
                 formatter={(value) => {
                   const numValue = Number(value) || 0;
                   return [
