@@ -99,9 +99,7 @@ export default async function JournalPage({ searchParams }: Props) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {trades.map((trade) => (
-            <Link key={trade.id} href={`/dashboard/journal/${trade.id}`}>
-              <TradeCard trade={trade} />
-            </Link>
+            <TradeCard key={trade.id} trade={trade} href={`/dashboard/journal/${trade.id}`} />
           ))}
         </div>
       )}
