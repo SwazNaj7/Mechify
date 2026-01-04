@@ -28,15 +28,11 @@ export function StatsCard({
   return (
     <Card
       className={cn(
-        'relative overflow-hidden border border-white/10 dark:border-white/5',
-        'bg-linear-to-br from-white/80 to-white/40 dark:from-white/10 dark:to-white/5',
-        'backdrop-blur-xl shadow-lg shadow-black/5 dark:shadow-black/20',
-        'before:absolute before:inset-0 before:bg-linear-to-br before:from-white/50 before:to-transparent before:pointer-events-none',
-        'after:absolute after:inset-0 after:bg-linear-to-tr after:from-transparent after:via-white/10 after:to-white/30 dark:after:via-white/5 dark:after:to-white/10 after:pointer-events-none',
+        'bg-card/50 backdrop-blur border-border/50',
         className
       )}
     >
-      <CardHeader className="relative z-10 flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
@@ -46,7 +42,7 @@ export function StatsCard({
           </div>
         )}
       </CardHeader>
-      <CardContent className="relative z-10">
+      <CardContent>
         <div className="text-3xl font-bold tracking-tight">{value}</div>
         {(subtitle || trendValue) && (
           <div className="flex items-center gap-2 mt-1">
