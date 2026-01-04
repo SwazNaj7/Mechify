@@ -14,45 +14,54 @@ export default async function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <div className="container mx-auto px-4 py-16">
-        <nav className="flex justify-between items-center mb-16">
-          <h1 className="text-2xl font-bold">Mechify</h1>
-          <div className="flex gap-4">
-            <Link href="/login">
-              <Button variant="ghost">Login</Button>
-            </Link>
-            <Link href="/signup">
-              <Button>Get Started</Button>
-            </Link>
-          </div>
-        </nav>
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Background Image with Blur */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: 'url(/hero-bg.jpg)' }}
+      />
+      <div className="absolute inset-0 backdrop-blur-xl bg-background/60" />
+      
+      {/* Content */}
+      <div className="relative z-10">
+        {/* Hero Section */}
+        <div className="container mx-auto px-4 py-16">
+          <nav className="flex justify-between items-center mb-16">
+            <h1 className="text-2xl font-bold">Mechify</h1>
+            <div className="flex gap-4">
+              <Link href="/login">
+                <Button variant="ghost">Login</Button>
+              </Link>
+              <Link href="/signup">
+                <Button>Get Started</Button>
+              </Link>
+            </div>
+          </nav>
 
-        <div className="max-w-3xl mx-auto text-center space-y-8">
-          <h2 className="text-5xl font-bold tracking-tight">
-            Master Your Trading with{' '}
-            <span className="text-primary">AI-Powered</span> Journaling
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Track your trades, analyze your charts with GPT-4 Vision, and get
-            personalized feedback based on the PB Blake Mechanical Trading Model.
-          </p>
-          <div className="flex gap-4 justify-center">
-            <Link href="/signup">
-              <Button size="lg" className="h-12 px-8">
-                Start Free Today
-              </Button>
-            </Link>
-            <Link href="/login">
-              <Button size="lg" variant="outline" className="h-12 px-8">
-                View Demo
-              </Button>
-            </Link>
+          {/* Glass Card Hero */}
+          <div className="max-w-3xl mx-auto">
+            <div className="backdrop-blur-md bg-card/40 border border-white/10 rounded-2xl p-10 shadow-2xl">
+              <div className="text-center space-y-8">
+                <h2 className="text-5xl font-bold tracking-tight">
+                  Master Your Trading with{' '}
+                  <span className="text-primary">AI-Powered</span> Journaling
+                </h2>
+                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                  Track your trades, analyze your charts with AI Vision, and get
+                  personalized feedback based on the popularised <a className="font-semibold underline" href="https://www.youtube.com/watch?v=n8FqECMb-9o&pp=ygUZdGhpcyBzeXN0ZW1pemVkIGljdCBtb2RlbNIHCQlNCgGHKiGM7w%3D%3D" target="_blank" rel="noopener noreferrer">Mech Model</a>.
+                </p>
+                <div className="flex justify-center">
+                  <Link href="/signup">
+                    <Button size="lg" className="h-12 px-10 text-base font-semibold">
+                      Start Free Today
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Features Grid */}
+          {/* Features Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-24">
           <div className="p-6 rounded-xl border bg-card">
             <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
@@ -95,10 +104,11 @@ export default async function Home() {
           </div>
         </div>
 
-        {/* Footer */}
-        <footer className="mt-24 text-center text-sm text-muted-foreground">
-          <p> {new Date().getFullYear()} Mechify. Built for serious traders.</p>
-        </footer>
+          {/* Footer */}
+          <footer className="mt-24 text-center text-sm text-muted-foreground">
+            <p>© {new Date().getFullYear()} Mechify. Built for serious traders.</p>
+          </footer>
+        </div>
       </div>
     </div>
   );

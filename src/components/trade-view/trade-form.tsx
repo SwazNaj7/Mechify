@@ -24,7 +24,7 @@ import type { AIFormData, SetupGrade, TradeDirection, TradeResult } from '@/type
 
 const instruments = [
   'EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD',
-  'NQ', 'ES', 'YM', 'RTY',
+  'NAS/MNQ', 'S&P/MES', 'YM', 'RTY',
   'BTCUSD', 'ETHUSD',
   'XAUUSD', 'XAGUSD',
 ];

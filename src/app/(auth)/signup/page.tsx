@@ -134,7 +134,7 @@ export default function SignupPage() {
                 </p>
               </div>
             </CardContent>
-            <CardFooter className="flex flex-col space-y-4">
+            <CardFooter className="flex flex-col space-y-4 pt-4">
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
