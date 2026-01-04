@@ -1,10 +1,6 @@
 # Mechify - AI-Powered Trading Journal
 
 <p align="center">
-  <img src="public/logo.png" alt="Mechify Logo" width="120" />
-</p>
-
-<p align="center">
   <strong>Master Your Trading with AI-Powered Journaling</strong>
 </p>
 
