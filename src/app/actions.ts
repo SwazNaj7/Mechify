@@ -1,0 +1,507 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { createClient } from '@/lib/supabase/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { VISION_SYSTEM_PROMPT } from '@/lib/ai-prompting';
+import type { AIFormData, Trade, SetupGrade, TradeResult } from '@/types/trade';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+type ActionResult<T = void> = 
+  | { success: true; data: T }
+  | { success: false; error: string };
+
+export interface TradeUploadData {
+  setupGrade: SetupGrade;
+  tradeResult: TradeResult;
+  session: string;
+  pair: string;
+  timeframe: string;
+  notes?: string;
+  tradeDate: string;
+}
+
+// ============================================================================
+// Trade Actions
+// ============================================================================
+
+/**
+ * Analyze a chart image using Google Gemini Vision API
+ */
+export async function analyzeChartImage(
+  base64Image: string
+): Promise<ActionResult<AIFormData>> {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    
+    if (!apiKey) {
+      return { success: false, error: 'Gemini API key not configured' };
+    }
+
+    if (!base64Image) {
+      return { success: false, error: 'No image provided' };
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+    // Extract base64 data and mime type
+    const matches = base64Image.match(/^data:(.+);base64,(.+)$/);
+    if (!matches) {
+      console.error('Image format issue. Starts with:', base64Image.substring(0, 50));
+      return { success: false, error: 'Invalid image format. Please upload a valid image.' };
+    }
+    const mimeType = matches[1];
+    const base64Data = matches[2];
+
+    const result = await model.generateContent([
+      VISION_SYSTEM_PROMPT,
+      {
+        inlineData: {
+          mimeType: mimeType,
+          data: base64Data,
+        },
+      },
+    ]);
+
+    const content = result.response.text();
+
+    if (!content) {
+      return { success: false, error: 'No analysis returned' };
+    }
+
+    // Parse JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return { success: false, error: 'Invalid analysis format' };
+    }
+
+    const analysis: AIFormData = JSON.parse(jsonMatch[0]);
+    return { success: true, data: analysis };
+  } catch (error) {
+    console.error('Chart analysis error:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Analysis failed' 
+    };
+  }
+}
+
+/**
+ * Upload a trade with all associated data
+ */
+export async function uploadTrade(
+  formData: TradeUploadData,
+  imageBase64: string | null,
+  aiAnalysis: AIFormData | null
+): Promise<ActionResult<Trade>> {
+  try {
+    const supabase = await createClient();
+
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // Ensure user has a profile (handles users who signed up before trigger existed)
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+
+    if (!existingProfile) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          email: user.email,
+          full_name: user.user_metadata?.full_name || null,
+        });
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        return { success: false, error: 'Failed to create user profile' };
+      }
+    }
+
+    // Basic validation
+    if (!formData.setupGrade || !formData.tradeResult || !formData.session || !formData.pair) {
+      return { 
+        success: false, 
+        error: 'Missing required fields' 
+      };
+    }
+
+    let imageUrl: string | null = null;
+
+    // Upload image to Supabase Storage if provided
+    if (imageBase64 && imageBase64.includes(',')) {
+      // Extract mime type and base64 data
+      const matches = imageBase64.match(/^data:(.+);base64,(.+)$/);
+      if (matches) {
+        const mimeType = matches[1];
+        const base64Data = matches[2];
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        // Always use webp extension for consistency
+        const fileName = `${user.id}/${Date.now()}.webp`;
+
+        console.log('Uploading image:', { mimeType, fileName, bufferSize: buffer.length });
+
+        const { error: uploadError } = await supabase.storage
+          .from('trade-screenshots')
+          .upload(fileName, buffer, {
+            contentType: 'image/webp',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error('Image upload error:', uploadError);
+          return { success: false, error: `Image upload failed: ${uploadError.message}` };
+        }
+
+        // Construct the public URL manually to ensure correctness
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        imageUrl = `${supabaseUrl}/storage/v1/object/public/trade-screenshots/${fileName}`;
+        console.log('Image uploaded successfully:', imageUrl);
+      } else {
+        console.error('Could not parse base64 image data');
+      }
+    }
+
+    // Prepare trade data
+    const tradeData = {
+      user_id: user.id,
+      instrument: formData.pair,
+      timeframe: formData.timeframe,
+      direction: null,
+      result: formData.tradeResult,
+      open_time: formData.tradeDate,
+      close_time: formData.tradeDate,
+      image_url: imageUrl || '',
+      setup_grade: formData.setupGrade,
+      ai_confidence: aiAnalysis ? 'high' : null,
+      ai_reasoning: aiAnalysis?.reasoning || null,
+      overlay_entry_x: aiAnalysis?.entry_coordinate?.x || null,
+      overlay_entry_y: aiAnalysis?.entry_coordinate?.y || null,
+      notes: formData.notes || null,
+      created_at: new Date().toISOString(),
+    };
+
+    // Insert trade
+    const { data: trade, error: insertError } = await supabase
+      .from('trades')
+      .insert(tradeData)
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Trade insert error:', insertError);
+      return { success: false, error: 'Failed to save trade' };
+    }
+
+    // Revalidate relevant paths
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/journal');
+    revalidatePath('/dashboard/journaling');
+    revalidatePath('/dashboard/analysis');
+
+    return { success: true, data: trade as Trade };
+  } catch (error) {
+    console.error('Upload trade error:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to upload trade' 
+    };
+  }
+}
+
+/**
+ * Get all trades for the current user
+ */
+export async function getTrades(): Promise<ActionResult<Trade[]>> {
+  try {
+    const supabase = await createClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    const { data: trades, error } = await supabase
+      .from('trades')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: trades as Trade[] };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to fetch trades' 
+    };
+  }
+}
+
+/**
+ * Get a single trade by ID
+ */
+export async function getTradeById(tradeId: string): Promise<ActionResult<Trade>> {
+  try {
+    const supabase = await createClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    const { data: trade, error } = await supabase
+      .from('trades')
+      .select('*')
+      .eq('id', tradeId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    if (!trade) {
+      return { success: false, error: 'Trade not found' };
+    }
+
+    return { success: true, data: trade as Trade };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to fetch trade' 
+    };
+  }
+}
+
+/**
+ * Delete a trade by ID
+ */
+export async function deleteTrade(tradeId: string): Promise<ActionResult> {
+  try {
+    const supabase = await createClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // First get the trade to delete its image
+    const { data: trade } = await supabase
+      .from('trades')
+      .select('image_url')
+      .eq('id', tradeId)
+      .eq('user_id', user.id)
+      .single();
+
+    // Delete image from storage if exists
+    if (trade?.image_url) {
+      const path = trade.image_url.split('/trade-screenshots/')[1];
+      if (path) {
+        await supabase.storage.from('trade-screenshots').remove([path]);
+      }
+    }
+
+    // Delete the trade
+    const { error } = await supabase
+      .from('trades')
+      .delete()
+      .eq('id', tradeId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/journaling');
+    revalidatePath('/dashboard/analysis');
+
+    return { success: true, data: undefined };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to delete trade' 
+    };
+  }
+}
+
+// ============================================================================
+// Chat Actions
+// ============================================================================
+
+/**
+ * Send a message to the AI trading buddy
+ */
+export async function sendChatMessage(
+  message: string,
+  history: Array<{ role: 'user' | 'assistant'; content: string }>
+): Promise<ActionResult<string>> {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    
+    if (!apiKey) {
+      return { success: false, error: 'Gemini API key not configured' };
+    }
+
+    const { CHAT_SYSTEM_PROMPT } = await import('@/lib/ai-prompting');
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+    // Convert history to Gemini format
+    const chatHistory = history.slice(-10).map((msg) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }],
+    }));
+
+    const chat = model.startChat({
+      history: [
+        { role: 'user', parts: [{ text: CHAT_SYSTEM_PROMPT }] },
+        { role: 'model', parts: [{ text: 'I understand. I will act as your expert trading mentor following the PB Blake Mechanical Trading Model.' }] },
+        ...chatHistory,
+      ],
+    });
+
+    const result = await chat.sendMessage(message);
+    const content = result.response.text();
+
+    if (!content) {
+      return { success: false, error: 'No response from AI' };
+    }
+
+    return { success: true, data: content };
+  } catch (error) {
+    console.error('Chat error:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Chat failed' 
+    };
+  }
+}
+
+// ============================================================================
+// Profile Actions
+// ============================================================================
+
+/**
+ * Get the current user's profile
+ */
+export async function getProfile(): Promise<ActionResult<{ id: string; email: string | null; full_name: string | null; timezone: string | null }>> {
+  try {
+    const supabase = await createClient();
+    
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('id, email, full_name, timezone')
+      .eq('id', user.id)
+      .single();
+
+    if (error) {
+      // If profile doesn't exist, create one
+      if (error.code === 'PGRST116') {
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            email: user.email,
+            full_name: user.user_metadata?.full_name || null,
+            timezone: null,
+          })
+          .select('id, email, full_name, timezone')
+          .single();
+
+        if (createError) {
+          return { success: false, error: 'Failed to create profile' };
+        }
+
+        return { success: true, data: newProfile };
+      }
+      return { success: false, error: 'Failed to fetch profile' };
+    }
+
+    return { success: true, data: profile };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch profile',
+    };
+  }
+}
+
+/**
+ * Update the current user's profile
+ */
+export async function updateProfile(data: { full_name?: string; timezone?: string }): Promise<ActionResult> {
+  try {
+    const supabase = await createClient();
+    
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update(data)
+      .eq('id', user.id);
+
+    if (error) {
+      console.error('Profile update error:', error);
+      return { success: false, error: 'Failed to update profile' };
+    }
+
+    revalidatePath('/dashboard/settings');
+    return { success: true, data: undefined };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update profile',
+    };
+  }
+}
+
+// ============================================================================
+// Auth Actions
+// ============================================================================
+
+/**
+ * Sign out the current user
+ */
+export async function signOut(): Promise<ActionResult> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: undefined };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Sign out failed' 
+    };
+  }
+}
+
