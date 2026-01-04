@@ -77,12 +77,21 @@ export default async function AnalysisPage() {
     }
   });
 
-  // Session performance (placeholder - would need session data on trades)
+  // Session performance - calculated from actual trade data
   const sessionPerformance = {
+    new_york_am: { wins: 0, total: 0 },
+    new_york_pm: { wins: 0, total: 0 },
+    asia: { wins: 0, total: 0 },
     london: { wins: 0, total: 0 },
-    new_york: { wins: 0, total: 0 },
-    asian: { wins: 0, total: 0 },
   };
+  trades.forEach((t) => {
+    if (t.session && t.session in sessionPerformance) {
+      sessionPerformance[t.session].total++;
+      if (t.result === 'take_profit') {
+        sessionPerformance[t.session].wins++;
+      }
+    }
+  });
 
   // Calculate best instrument
   const instrumentStats: Record<string, { wins: number; total: number }> = {};

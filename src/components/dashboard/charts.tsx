@@ -101,17 +101,19 @@ export function ResultDistribution({ distribution }: ResultDistributionProps) {
 
 interface SessionPerformanceProps {
   sessions: {
+    new_york_am: { wins: number; total: number };
+    new_york_pm: { wins: number; total: number };
+    asia: { wins: number; total: number };
     london: { wins: number; total: number };
-    new_york: { wins: number; total: number };
-    asian: { wins: number; total: number };
   };
 }
 
 export function SessionPerformance({ sessions }: SessionPerformanceProps) {
   const sessionData = [
+    { name: 'New York AM', ...sessions.new_york_am },
+    { name: 'New York PM', ...sessions.new_york_pm },
     { name: 'London', ...sessions.london },
-    { name: 'New York', ...sessions.new_york },
-    { name: 'Asian', ...sessions.asian },
+    { name: 'Asia', ...sessions.asia },
   ];
 
   return (

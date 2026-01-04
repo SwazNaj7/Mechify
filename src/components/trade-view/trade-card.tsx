@@ -16,6 +16,17 @@ interface TradeCardProps {
 export function TradeCard({ trade, onClick }: TradeCardProps) {
   const isLong = trade.direction === 'long';
 
+  // Format the time in user's local timezone
+  const formatTradeTime = (timeString: string) => {
+    try {
+      // new Date() automatically converts ISO string to local timezone
+      const date = new Date(timeString);
+      return format(date, 'MMM d, yyyy h:mm a');
+    } catch {
+      return timeString;
+    }
+  };
+
   return (
     <Card
       className={cn(
@@ -40,12 +51,6 @@ export function TradeCard({ trade, onClick }: TradeCardProps) {
           </div>
         )}
 
-        {/* Overlay badges */}
-        <div className="absolute top-2 left-2 flex gap-2">
-          <GradeBadge grade={trade.setup_grade} size="sm" />
-          <ResultBadge result={trade.result} size="sm" />
-        </div>
-
         {/* Direction indicator */}
         {trade.direction && (
           <div
@@ -66,22 +71,24 @@ export function TradeCard({ trade, onClick }: TradeCardProps) {
       </div>
 
       <CardContent className="p-4 space-y-3">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+        {/* Header with instrument, timeframe, grade and result */}
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-lg">{trade.instrument}</span>
             <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
               {trade.timeframe}
             </span>
           </div>
+          <div className="flex items-center gap-2">
+            <GradeBadge grade={trade.setup_grade} size="sm" />
+            <ResultBadge result={trade.result} size="sm" />
+          </div>
         </div>
 
         {/* Time info */}
         <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <Clock className="h-3.5 w-3.5" />
-          <span>
-            {format(new Date(trade.open_time), 'MMM d, yyyy HH:mm')} EST
-          </span>
+          <span>{formatTradeTime(trade.open_time)}</span>
         </div>
 
         {/* AI Reasoning preview */}

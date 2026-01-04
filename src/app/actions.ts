@@ -175,14 +175,21 @@ export async function uploadTrade(
     }
 
     // Prepare trade data
+    // Convert local datetime to ISO string with timezone preserved
+    // The tradeDate comes as "YYYY-MM-DDTHH:mm" from datetime-local input
+    // We need to treat it as local time and convert properly
+    const localDate = new Date(formData.tradeDate);
+    const isoDateTime = localDate.toISOString();
+
     const tradeData = {
       user_id: user.id,
       instrument: formData.pair,
       timeframe: formData.timeframe,
       direction: null,
       result: formData.tradeResult,
-      open_time: formData.tradeDate,
-      close_time: formData.tradeDate,
+      session: formData.session,
+      open_time: isoDateTime,
+      close_time: isoDateTime,
       image_url: imageUrl || '',
       setup_grade: formData.setupGrade,
       ai_confidence: aiAnalysis ? 'high' : null,

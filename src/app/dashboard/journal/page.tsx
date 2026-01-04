@@ -10,6 +10,7 @@ interface Props {
     result?: string;
     grade?: string;
     instrument?: string;
+    session?: string;
   }>;
 }
 
@@ -35,8 +36,14 @@ export default async function JournalPage({ searchParams }: Props) {
     );
   }
 
+  if (params.session) {
+    trades = trades.filter((t) => t.session === params.session);
+  }
+
   // Get unique instruments for filter
   const instruments = [...new Set(allTrades.map((t) => t.instrument))];
+
+  const hasFilters = params.result || params.grade || params.instrument || params.session;
 
   return (
     <div className="space-y-6">
@@ -63,23 +70,23 @@ export default async function JournalPage({ searchParams }: Props) {
       {trades.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            {params.result || params.grade || params.instrument ? (
+            {hasFilters ? (
               <Filter className="h-8 w-8 text-muted-foreground" />
             ) : (
               <Plus className="h-8 w-8 text-muted-foreground" />
             )}
           </div>
           <h3 className="text-lg font-semibold mb-2">
-            {params.result || params.grade || params.instrument
+            {hasFilters
               ? 'No trades match your filters'
               : 'No trades yet'}
           </h3>
           <p className="text-muted-foreground mb-4 max-w-sm">
-            {params.result || params.grade || params.instrument
+            {hasFilters
               ? 'Try adjusting your filters to see more trades.'
               : 'Start building your trade journal by logging your first trade.'}
           </p>
-          {params.result || params.grade || params.instrument ? (
+          {hasFilters ? (
             <Button variant="outline" asChild>
               <Link href="/dashboard/journal">Clear Filters</Link>
             </Button>

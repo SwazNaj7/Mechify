@@ -11,10 +11,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import type { TradeSession } from '@/types/trade';
 
 interface TradeFiltersProps {
   instruments: string[];
 }
+
+const sessionLabels: Record<TradeSession, string> = {
+  new_york_am: 'New York AM',
+  new_york_pm: 'New York PM',
+  asia: 'Asia',
+  london: 'London',
+};
 
 export function TradeFilters({ instruments }: TradeFiltersProps) {
   const router = useRouter();
@@ -24,8 +32,9 @@ export function TradeFilters({ instruments }: TradeFiltersProps) {
   const currentResult = searchParams.get('result');
   const currentGrade = searchParams.get('grade');
   const currentInstrument = searchParams.get('instrument');
+  const currentSession = searchParams.get('session');
 
-  const hasFilters = currentResult || currentGrade || currentInstrument;
+  const hasFilters = currentResult || currentGrade || currentInstrument || currentSession;
 
   const updateFilter = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -94,9 +103,25 @@ export function TradeFilters({ instruments }: TradeFiltersProps) {
         </Select>
       )}
 
+      {/* Session Filter */}
+      <Select
+        value={currentSession || ''}
+        onValueChange={(value) => updateFilter('session', value || null)}
+      >
+        <SelectTrigger className="w-[140px] bg-card">
+          <SelectValue placeholder="Session" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="new_york_am">New York AM</SelectItem>
+          <SelectItem value="new_york_pm">New York PM</SelectItem>
+          <SelectItem value="london">London</SelectItem>
+          <SelectItem value="asia">Asia</SelectItem>
+        </SelectContent>
+      </Select>
+
       {/* Active Filters */}
       {hasFilters && (
-        <div className="flex items-center gap-2 ml-2">
+        <div className="flex items-center gap-2 ml-2 flex-wrap">
           <span className="text-sm text-muted-foreground">Active:</span>
           {currentResult && (
             <Badge variant="secondary" className="gap-1">
@@ -125,6 +150,17 @@ export function TradeFilters({ instruments }: TradeFiltersProps) {
               {currentInstrument}
               <button
                 onClick={() => updateFilter('instrument', null)}
+                className="ml-1 hover:text-foreground"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {currentSession && (
+            <Badge variant="secondary" className="gap-1">
+              {sessionLabels[currentSession as TradeSession] || currentSession}
+              <button
+                onClick={() => updateFilter('session', null)}
                 className="ml-1 hover:text-foreground"
               >
                 <X className="h-3 w-3" />
