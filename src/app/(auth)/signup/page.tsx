@@ -160,27 +160,27 @@ export default function SignupPage() {
 
   return (
     <AuroraBackground>
-      <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
-        <div className="w-full max-w-lg space-y-8">
+      <div className="min-h-screen flex items-center justify-center py-8 px-4 relative z-10">
+        <div className="w-full max-w-lg space-y-6">
           {/* Logo */}
           <div className="flex flex-col items-center space-y-2">
             <div className="flex items-center space-x-2">
-              <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center">
-                <TrendingUp className="h-7 w-7 text-primary-foreground" />
+              <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-primary-foreground" />
               </div>
-              <span className="text-3xl font-bold">Mechify</span>
+              <span className="text-2xl font-bold">Mechify</span>
             </div>
-            <p className="text-muted-foreground">Mechanical Trading Journal</p>
+            <p className="text-muted-foreground text-sm">Mechanical Trading Journal</p>
           </div>
 
         <Card className="border-border/50 bg-card/50 backdrop-blur">
-          <CardHeader className="space-y-1 p-6 pb-4">
-            <CardTitle className="text-2xl text-center">Create an account</CardTitle>
-            <CardDescription className="text-center">
+          <CardHeader className="space-y-1 p-5 pb-3">
+            <CardTitle className="text-xl text-center">Create an account</CardTitle>
+            <CardDescription className="text-center text-sm">
               Start journaling your trades with AI-powered analysis
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-5 px-6">
+          <CardContent className="space-y-4 px-5">
             {/* Google Sign Up Button */}
             <Button
               type="button"
@@ -208,8 +208,8 @@ export default function SignupPage() {
               </div>
             </div>
 
-            <form onSubmit={handleSignup} className="space-y-4">
-              <div className="space-y-2">
+            <form onSubmit={handleSignup} className="space-y-3">
+              <div className="space-y-1.5">
                 <Label htmlFor="fullName">Full Name</Label>
                 <Input
                   id="fullName"
@@ -221,7 +221,7 @@ export default function SignupPage() {
                   className="bg-background/50"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="username">Username</Label>
                 <div className="relative">
                   <Input
@@ -254,7 +254,7 @@ export default function SignupPage() {
                   3-20 characters, letters, numbers, and underscores only
                 </p>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
@@ -266,7 +266,7 @@ export default function SignupPage() {
                   className="bg-background/50"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
                   <Input
@@ -313,7 +313,7 @@ export default function SignupPage() {
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4 pt-2 pb-6">
+          <CardFooter className="flex flex-col space-y-3 pt-0 pb-5 px-5">
             <p className="text-sm text-muted-foreground text-center">
               Already have an account?{' '}
               <Link href="/login" className="text-primary hover:underline font-medium">
